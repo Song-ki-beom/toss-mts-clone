@@ -34,6 +34,23 @@ React 19 + TypeScript + Vite로 만든 PC 웹 트레이딩 화면입니다. 모�
   ```
 - Windows PowerShell에서 `npm` 실행이 막히면 `npm.cmd run dev`처럼 실행합니다.
 
+### Vercel 배포
+배포 설정은 `web/vercel.json`에 있습니다(Vite, `npm ci` → `npm run build`, 결과물 `dist/`).
+
+1. https://vercel.com 에 GitHub 계정으로 가입·로그인합니다.
+2. **Add New → Project**에서 GitHub 연동을 허용하고 `toss-mts-clone` 저장소를 **Import**합니다.
+   Private 저장소는 Vercel GitHub 앱에 해당 저장소 접근 권한을 줘야 목록에 보입니다.
+3. **Root Directory**를 `web`으로 지정합니다. (이 저장소는 루트가 Android 프로젝트라 꼭 필요)
+4. Framework Preset이 **Vite**로 잡혔는지 확인하고 **Deploy**를 누릅니다. 환경 변수는 필요 없습니다.
+5. 이후 `main` 브랜치에 푸시할 때마다 자동으로 다시 배포되고, 다른 브랜치는 미리보기 URL이 만들어집니다.
+
+CLI로 배포하려면:
+```
+cd web
+npx vercel           # 처음: 로그인, 프로젝트 연결 (Root Directory 질문에 ./ 그대로)
+npx vercel --prod    # 운영 배포
+```
+
 ## KIS 실시세 연동
 1. 한국투자증권 계좌를 만들고 [KIS Developers](https://apiportal.koreainvestment.com)에서 모의투자 신청 후 App Key / App Secret을 발급받습니다.
 2. 프로젝트 루트의 `local.properties`(Git에 올라가지 않음)에 추가합니다.
