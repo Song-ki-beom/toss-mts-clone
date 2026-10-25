@@ -19,6 +19,21 @@
 - 상승 빨강 / 하락 파랑, 라이트·다크 모드 지원
 - 디자인 토큰은 `ui/theme/Theme.kt`, 공통 카드·목록·토글은 `ui/Components.kt`
 
+## 웹 버전 (`web/`)
+React 19 + TypeScript + Vite로 만든 PC 웹 트레이딩 화면입니다. 모바일 앱과 같은 모의 시세·주문 엔진을 TypeScript로 옮겨 씁니다.
+
+- 3단 레이아웃: 내 투자·관심종목 / 종목 시세·차트·보유 주식·주문 내역 / 주문 패널·호가
+- 화면 폭에 따라 3단 → 2단 → 1단으로 바뀌는 반응형, 라이트·다크 모드
+- 실행: Node.js 20.19 이상 필요
+  ```
+  cd web
+  npm install
+  npm run dev      # http://localhost:5173
+  npm test         # Vitest 단위 테스트
+  npm run build    # dist/ 에 정적 파일 생성
+  ```
+- Windows PowerShell에서 `npm` 실행이 막히면 `npm.cmd run dev`처럼 실행합니다.
+
 ## KIS 실시세 연동
 1. 한국투자증권 계좌를 만들고 [KIS Developers](https://apiportal.koreainvestment.com)에서 모의투자 신청 후 App Key / App Secret을 발급받습니다.
 2. 프로젝트 루트의 `local.properties`(Git에 올라가지 않음)에 추가합니다.

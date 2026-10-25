@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { change } from './domain/models'
-import { market, placeOrder, trading, useAccount, useMarket } from './state/store'
+import { cancelOrder, market, placeOrder, trading, useAccount, useMarket } from './state/store'
+import { AccountPanel, AssetSummary } from './components/AccountPanel'
 import { Watchlist } from './components/Watchlist'
 import { StockHeader } from './components/StockHeader'
 import { PriceChart } from './components/PriceChart'
@@ -35,12 +36,14 @@ export default function App() {
 
       <main className="layout">
         <aside className="col-left">
+          <AssetSummary account={account} quotes={state.quotes} />
           <Watchlist stocks={market.stocks} quotes={state.quotes} selected={selected} onSelect={setSelected} query={query} />
         </aside>
 
         <section className="col-center">
           <StockHeader stock={stock} quote={quote} holding={account.holdings[selected]} />
           <PriceChart candles={state.candles[selected] ?? []} label={market.candleLabel} up={change(quote) >= 0} />
+          <AccountPanel account={account} quotes={state.quotes} onSelect={setSelected} onCancel={cancelOrder} />
         </section>
 
         <aside className="col-right">
