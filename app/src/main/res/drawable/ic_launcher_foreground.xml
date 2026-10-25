@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 캔들 세 개로 만든 런처 아이콘 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF64B5F6" android:pathData="M37,44h2v32h-2z M34,50h8v20h-8z" />
+    <path android:fillColor="#FFFF5252" android:pathData="M53,34h2v34h-2z M50,40h8v22h-8z" />
+    <path android:fillColor="#FFFF5252" android:pathData="M69,28h2v30h-2z M66,32h8v20h-8z" />
+</vector>
