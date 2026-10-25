@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SimpleMTS"
+rootProject.name = "TossMtsClone"
 include(":app")
