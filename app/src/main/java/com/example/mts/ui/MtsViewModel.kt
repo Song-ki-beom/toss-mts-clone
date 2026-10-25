@@ -1,10 +1,10 @@
 package com.example.mts.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mts.data.Account
 import com.example.mts.data.MarketDataSource
-import com.example.mts.data.MarketSimulator
 import com.example.mts.data.MarketState
 import com.example.mts.data.Order
 import com.example.mts.data.OrderStatus
@@ -12,18 +12,21 @@ import com.example.mts.data.OrderType
 import com.example.mts.data.Side
 import com.example.mts.data.Stock
 import com.example.mts.data.TradingEngine
+import com.example.mts.data.kis.createMarketDataSource
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class MtsViewModel : ViewModel() {
+class MtsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val market: MarketDataSource = MarketSimulator(viewModelScope)
+    private val market: MarketDataSource = createMarketDataSource(application, viewModelScope)
     private val trading = TradingEngine()
 
     val stocks: List<Stock> = market.stocks
     val marketState: StateFlow<MarketState> = market.state
+    val marketStatus: StateFlow<String> = market.status
+    val candleLabel: String = market.candleLabel
     val account: StateFlow<Account> = trading.account
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 16)
@@ -51,6 +54,10 @@ class MtsViewModel : ViewModel() {
 
     fun cancel(orderId: Long) {
         if (trading.cancel(orderId)) _messages.tryEmit("주문이 취소되었습니다")
+    }
+
+    override fun onCleared() {
+        market.close()
     }
 
     fun maxBuyQuantity(price: Long): Long = trading.maxBuyQuantity(price)

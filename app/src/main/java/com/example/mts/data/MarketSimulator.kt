@@ -15,13 +15,18 @@ data class MarketState(
     val orderBooks: Map<String, OrderBook>,
 )
 
-/**
- * 시세 공급원. 지금은 [MarketSimulator]가 구현하고,
- * 나중에 증권사 API(REST + WebSocket) 구현체로 바꿔 끼우면 된다.
- */
+/** 시세 공급원. [MarketSimulator](모의 시세)와 KIS API 구현체가 있다. */
 interface MarketDataSource {
     val stocks: List<Stock>
     val state: StateFlow<MarketState>
+
+    /** 화면 상단에 보여줄 연결 상태 */
+    val status: StateFlow<String>
+
+    /** 차트 제목에 붙일 봉 단위 설명 */
+    val candleLabel: String
+
+    fun close() {}
 }
 
 /** 랜덤워크로 시세, 분봉, 호가를 만들어내는 모의 시세 엔진 */
@@ -32,18 +37,20 @@ class MarketSimulator(
     private val random: Random = Random.Default,
 ) : MarketDataSource {
 
-    private val seeds = listOf(
-        Stock("005930", "삼성전자", "KOSPI") to 71_500L,
-        Stock("000660", "SK하이닉스", "KOSPI") to 198_000L,
-        Stock("035420", "NAVER", "KOSPI") to 187_300L,
-        Stock("035720", "카카오", "KOSPI") to 41_250L,
-        Stock("005380", "현대차", "KOSPI") to 236_500L,
-        Stock("373220", "LG에너지솔루션", "KOSPI") to 352_000L,
-        Stock("068270", "셀트리온", "KOSPI") to 181_200L,
-        Stock("247540", "에코프로비엠", "KOSDAQ") to 168_900L,
+    private val basePrices = mapOf(
+        "005930" to 71_500L,
+        "000660" to 198_000L,
+        "035420" to 187_300L,
+        "035720" to 41_250L,
+        "005380" to 236_500L,
+        "373220" to 352_000L,
+        "068270" to 181_200L,
+        "247540" to 168_900L,
     )
 
-    override val stocks: List<Stock> = seeds.map { it.first }
+    override val stocks: List<Stock> = DEFAULT_WATCHLIST
+    override val status: StateFlow<String> = MutableStateFlow("모의 시세").asStateFlow()
+    override val candleLabel = "봉당 ${tickIntervalMs * ticksPerCandle / 1000}초"
 
     private var tickCount = 0
     private val _state: MutableStateFlow<MarketState>
@@ -52,7 +59,8 @@ class MarketSimulator(
     init {
         val quotes = LinkedHashMap<String, Quote>()
         val candles = LinkedHashMap<String, List<Candle>>()
-        for ((stock, prevClose) in seeds) {
+        for (stock in stocks) {
+            val prevClose = basePrices[stock.code] ?: 50_000L
             val history = generateHistory(prevClose)
             candles[stock.code] = history
             quotes[stock.code] = Quote(

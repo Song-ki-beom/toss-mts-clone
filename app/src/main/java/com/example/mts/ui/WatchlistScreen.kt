@@ -4,6 +4,7 @@ import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,9 +37,16 @@ import com.example.mts.ui.theme.priceColor
 fun WatchlistScreen(
     stocks: List<Stock>,
     quotes: Map<String, Quote>,
+    status: String,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    if (quotes.isEmpty()) {
+        Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
     LazyColumn(modifier.fillMaxSize()) {
         items(stocks, key = { it.code }) { stock ->
             val quote = quotes[stock.code] ?: return@items

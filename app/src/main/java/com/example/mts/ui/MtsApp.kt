@@ -2,6 +2,7 @@ package com.example.mts.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.NavigationBar
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +36,7 @@ private enum class Tab(val label: String, val symbol: String) {
 fun MtsApp(vm: MtsViewModel = viewModel()) {
     val market by vm.marketState.collectAsStateWithLifecycle()
     val account by vm.account.collectAsStateWithLifecycle()
+    val marketStatus by vm.marketStatus.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.WATCHLIST) }
     var selectedCode by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
@@ -51,6 +54,7 @@ fun MtsApp(vm: MtsViewModel = viewModel()) {
             stock = selected,
             quote = selectedQuote,
             candles = market.candles[selected.code].orEmpty(),
+            candleLabel = vm.candleLabel,
             orderBook = market.orderBooks[selected.code],
             holding = account.holdings[selected.code],
             snackbarHostState = snackbar,
@@ -65,7 +69,11 @@ fun MtsApp(vm: MtsViewModel = viewModel()) {
                 TopAppBar(
                     title = { Text(tab.label) },
                     actions = {
-                        AssistChip(onClick = {}, label = { Text("모의투자") }, modifier = Modifier.padding(end = 12.dp))
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(marketStatus, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.padding(end = 12.dp).widthIn(max = 240.dp),
+                        )
                     },
                 )
             },
@@ -87,6 +95,7 @@ fun MtsApp(vm: MtsViewModel = viewModel()) {
                 Tab.WATCHLIST -> WatchlistScreen(
                     stocks = vm.stocks,
                     quotes = market.quotes,
+                    status = marketStatus,
                     onSelect = { selectedCode = it },
                     modifier = Modifier.padding(padding),
                 )

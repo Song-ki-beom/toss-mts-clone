@@ -60,6 +60,7 @@ fun StockDetailScreen(
     stock: Stock,
     quote: Quote,
     candles: List<Candle>,
+    candleLabel: String,
     orderBook: OrderBook?,
     holding: Holding?,
     snackbarHostState: SnackbarHostState,
@@ -111,15 +112,24 @@ fun StockDetailScreen(
         LazyColumn(contentPadding = padding) {
             item { PriceHeader(quote, holding) }
             item {
-                SectionTitle("차트 (봉당 5초)")
-                CandleChart(
-                    candles = candles,
-                    currentPrice = quote.price,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                SectionTitle("차트 ($candleLabel)")
+                if (candles.isEmpty()) {
+                    Text(
+                        "차트 데이터가 없습니다. 장중에 실시간 체결이 들어오면 그려집니다.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                    )
+                } else {
+                    CandleChart(
+                        candles = candles,
+                        currentPrice = quote.price,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
             }
             item {
                 SectionTitle("호가 (가격을 누르면 지정가 주문)")

@@ -2,6 +2,17 @@ package com.example.mts.data
 
 data class Stock(val code: String, val name: String, val market: String)
 
+val DEFAULT_WATCHLIST = listOf(
+    Stock("005930", "삼성전자", "KOSPI"),
+    Stock("000660", "SK하이닉스", "KOSPI"),
+    Stock("035420", "NAVER", "KOSPI"),
+    Stock("035720", "카카오", "KOSPI"),
+    Stock("005380", "현대차", "KOSPI"),
+    Stock("373220", "LG에너지솔루션", "KOSPI"),
+    Stock("068270", "셀트리온", "KOSPI"),
+    Stock("247540", "에코프로비엠", "KOSDAQ"),
+)
+
 data class Quote(
     val code: String,
     val price: Long,
