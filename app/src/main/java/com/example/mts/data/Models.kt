@@ -33,11 +33,11 @@ data class OrderBookLevel(val price: Long, val quantity: Long)
 /** asks, bids 모두 가격 내림차순. 화면에 위에서부터 그대로 그리면 된다. */
 data class OrderBook(val asks: List<OrderBookLevel>, val bids: List<OrderBookLevel>)
 
-enum class Side(val label: String) { BUY("매수"), SELL("매도") }
+enum class Side(val label: String) { BUY("구매"), SELL("판매") }
 
 enum class OrderType(val label: String) { LIMIT("지정가"), MARKET("시장가") }
 
-enum class OrderStatus(val label: String) { PENDING("미체결"), FILLED("체결"), CANCELED("취소") }
+enum class OrderStatus(val label: String) { PENDING("대기"), FILLED("체결"), CANCELED("취소") }
 
 data class Order(
     val id: Long,

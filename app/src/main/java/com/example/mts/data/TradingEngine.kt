@@ -37,14 +37,14 @@ class TradingEngine(initialCash: Long = 10_000_000L) {
         quantity: Long,
         marketPrice: Long,
     ): Result<Order> {
-        if (quantity <= 0) return failure("수량을 입력하세요")
+        if (quantity <= 0) return failure("수량을 입력해 주세요")
         val orderPrice = if (type == OrderType.MARKET) marketPrice else limitPrice
-        if (orderPrice <= 0) return failure("가격을 확인하세요")
+        if (orderPrice <= 0) return failure("가격을 확인해 주세요")
 
         val acc = _account.value
         when (side) {
-            Side.BUY -> if (Fees.buyCost(orderPrice, quantity) > acc.cash) return failure("주문가능금액이 부족합니다")
-            Side.SELL -> if (quantity > sellableQuantity(acc, stock.code)) return failure("매도가능수량이 부족합니다")
+            Side.BUY -> if (Fees.buyCost(orderPrice, quantity) > acc.cash) return failure("주문 가능 금액이 부족해요")
+            Side.SELL -> if (quantity > sellableQuantity(acc, stock.code)) return failure("판매 가능 수량이 부족해요")
         }
 
         val order = Order(

@@ -46,14 +46,14 @@ class MtsViewModel(application: Application) : AndroidViewModel(application) {
             .onSuccess { order ->
                 _messages.tryEmit(
                     if (order.status == OrderStatus.FILLED) fillMessage(order)
-                    else "${order.name} ${order.quantity}주 ${side.label} 주문 접수 (${formatPrice(order.price)}원)"
+                    else "${order.name} ${order.quantity}주 ${side.label} 주문을 접수했어요 (${formatPrice(order.price)}원)"
                 )
             }
-            .onFailure { _messages.tryEmit(it.message ?: "주문에 실패했습니다") }
+            .onFailure { _messages.tryEmit(it.message ?: "주문하지 못했어요") }
     }
 
     fun cancel(orderId: Long) {
-        if (trading.cancel(orderId)) _messages.tryEmit("주문이 취소되었습니다")
+        if (trading.cancel(orderId)) _messages.tryEmit("주문을 취소했어요")
     }
 
     override fun onCleared() {
@@ -65,5 +65,5 @@ class MtsViewModel(application: Application) : AndroidViewModel(application) {
     fun sellableQuantity(code: String): Long = trading.sellableQuantity(code)
 
     private fun fillMessage(order: Order) =
-        "${order.name} ${order.quantity}주 ${order.side.label} 체결 (${formatPrice(order.filledPrice ?: order.price)}원)"
+        "${order.name} ${order.quantity}주 ${order.side.label} 완료 (${formatPrice(order.filledPrice ?: order.price)}원)"
 }
