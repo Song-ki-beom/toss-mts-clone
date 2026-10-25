@@ -1,0 +1,89 @@
+/* 디자인 토큰. 모바일 앱의 ui/theme/Theme.kt 와 같은 값을 쓴다 */
+:root {
+  --bg: #f2f4f6;
+  --card: #ffffff;
+  --text-1: #191f28;
+  --text-2: #4e5968;
+  --text-3: #8b95a1;
+  --divider: #e5e8eb;
+  --chip: #f2f4f6;
+  --hover: #f9fafb;
+
+  --brand: #3182f6;
+  --up: #f04452;
+  --down: #3182f6;
+  --up-soft: rgba(240, 68, 82, 0.08);
+  --down-soft: rgba(49, 130, 246, 0.08);
+  --pending: #ff9f00;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101013;
+    --card: #1c1c21;
+    --text-1: #f2f4f6;
+    --text-2: #b0b8c1;
+    --text-3: #7e8590;
+    --divider: #2c2c35;
+    --chip: #2a2a31;
+    --hover: #24242b;
+    --up-soft: rgba(240, 68, 82, 0.14);
+    --down-soft: rgba(49, 130, 246, 0.16);
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 15px;
+  letter-spacing: -0.2px;
+  /* 숫자 폭을 고정해 시세가 바뀌어도 글자가 흔들리지 않게 한다 */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.up {
+  color: var(--up);
+}
+
+.down {
+  color: var(--down);
+}
+
+.flat {
+  color: var(--text-3);
+}
