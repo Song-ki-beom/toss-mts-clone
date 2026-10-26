@@ -51,6 +51,46 @@ npx vercel           # 처음: 로그인, 프로젝트 연결 (Root Directory �
 npx vercel --prod    # 운영 배포
 ```
 
+## 중계 서버 (`server/`)
+증권사 구조처럼 **앱·웹은 중계 서버에만 연결하고, KIS 키는 서버에만 둡니다.**
+```
+[Android 앱] ─┐                        ┌─ REST ──────▶ [한국투자증권 KIS]
+              ├─ REST + WebSocket ─▶ [Ktor 서버] ─┤
+[웹 (React)] ─┘      (키 없음)          (키 보관)  └─ WebSocket ─▶
+```
+Ktor 3로 만들었고, 시세·주문 엔진과 KIS 연동 코드는 앱과 같은 `core` 모듈을 씁니다. KIS 키가 없으면 모의 시세로 동작합니다.
+
+| 경로 | 내용 |
+|---|---|
+| `GET /api/health` | 서버 상태와 시세 연결 상태 |
+| `GET /api/market` | 종목 목록, 현재 시세·호가·5초봉 스냅샷 |
+| `GET /api/stocks/{code}/history?period=DAY` | 일·주·월·년봉 (`DAY`, `WEEK`, `MONTH`, `YEAR`), 10분 캐시 |
+| `WS /ws/market` | 연결 직후 `{"type":"snapshot",...}`, 이후 0.5초 간격 `{"type":"state",...}` |
+
+환경 변수
+| 이름 | 설명 |
+|---|---|
+| `PORT` | 기본 8080 |
+| `KIS_APP_KEY`, `KIS_APP_SECRET` | 있으면 KIS 실시세, 없으면 모의 시세 |
+| `KIS_MOCK` | `false`면 실전투자 서버 (기본 모의투자) |
+| `ALLOWED_ORIGINS` | 브라우저 접근을 허용할 호스트, 쉼표 구분 (예: `toss-mts-clone.vercel.app,localhost:5173`). 비우면 모두 허용 |
+
+실행
+```
+gradlew.bat :server:run
+```
+또는 배포본을 만들어 실행합니다.
+```
+gradlew.bat :server:installDist
+server\build\install\server\bin\server.bat
+```
+Docker (저장소 루트에서):
+```
+docker build -f server/Dockerfile -t mts-relay .
+docker run -p 8080:8080 -e KIS_APP_KEY=... -e KIS_APP_SECRET=... mts-relay
+```
+Render, Fly.io, Railway 같은 서비스에 Dockerfile 경로를 `server/Dockerfile`, 빌드 위치를 저장소 루트로 지정하면 배포할 수 있습니다.
+
 ## Android 앱 배포
 릴리스 빌드는 R8 난독화·리소스 축소가 켜져 있습니다(APK 약 1.5MB). 결과물은 두 가지입니다.
 

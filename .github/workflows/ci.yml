@@ -17,7 +17,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       - name: 단위 테스트와 디버그 빌드
-        run: ./gradlew :core:test testDebugUnitTest assembleDebug --no-daemon
+        run: ./gradlew :core:test :server:test testDebugUnitTest assembleDebug --no-daemon
       - name: 테스트 결과 보관
         if: always()
         uses: actions/upload-artifact@v7
@@ -25,6 +25,7 @@ jobs:
           name: android-test-results
           path: |
             core/build/test-results/
+            server/build/test-results/
             app/build/test-results/
 
   web:

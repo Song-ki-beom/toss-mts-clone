@@ -1,5 +1,10 @@
 package com.example.mts.data
 
+import kotlinx.serialization.Serializable
+
+// @Serializable 이 붙은 모델은 중계 서버와 앱·웹 사이의 JSON 형식이기도 하다
+
+@Serializable
 data class Stock(val code: String, val name: String, val market: String)
 
 val DEFAULT_WATCHLIST = listOf(
@@ -13,6 +18,7 @@ val DEFAULT_WATCHLIST = listOf(
     Stock("247540", "에코프로비엠", "KOSDAQ"),
 )
 
+@Serializable
 data class Quote(
     val code: String,
     val price: Long,
@@ -27,11 +33,14 @@ data class Quote(
 }
 
 /** time은 봉의 기준 시각(epoch ms). 실시간 봉에는 없다 */
+@Serializable
 data class Candle(val open: Long, val high: Long, val low: Long, val close: Long, val volume: Long, val time: Long? = null)
 
+@Serializable
 data class OrderBookLevel(val price: Long, val quantity: Long)
 
 /** asks, bids 모두 가격 내림차순. 화면에 위에서부터 그대로 그리면 된다. */
+@Serializable
 data class OrderBook(val asks: List<OrderBookLevel>, val bids: List<OrderBookLevel>)
 
 enum class Side(val label: String) { BUY("구매"), SELL("판매") }

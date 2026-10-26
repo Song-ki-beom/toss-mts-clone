@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
 import kotlin.random.Random
 
+@kotlinx.serialization.Serializable
 data class MarketState(
     val quotes: Map<String, Quote>,
     val candles: Map<String, List<Candle>>,

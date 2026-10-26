@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // 앱(Android)과 서버(Ktor)가 함께 쓰는 순수 Kotlin 모듈. Android API를 쓰면 안 된다.
 plugins {
     id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 java {
