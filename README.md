@@ -161,6 +161,8 @@ gradlew.bat assembleRelease bundleRelease
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("release-key.jks")) | Set-Clipboard
 ```
 그다음 버전 태그를 푸시하면 `.github/workflows/android-release.yml`이 테스트 → 서명된 APK·AAB 빌드 → GitHub Release 생성까지 합니다.
+워크플로에는 중계 서버 주소(`MTS_SERVER_URL=https://mts-relay.onrender.com`)가 들어 있어, 릴리스 APK는 설치하자마자 Render 중계 서버의 KIS 모의투자 시세를 받습니다.
+내 PC에서 빌드할 때는 `local.properties`의 `mts.serverUrl`이 우선입니다.
 ```
 git tag v0.3.0
 git push origin v0.3.0

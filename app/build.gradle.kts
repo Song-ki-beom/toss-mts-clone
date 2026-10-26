@@ -37,7 +37,9 @@ android {
         buildConfigField("String", "KIS_APP_SECRET", "\"${localProp("kis.appSecret")}\"")
         buildConfigField("boolean", "KIS_MOCK", localProp("kis.mock", "true"))
         // 중계 서버 주소. 에뮬레이터에서 내 PC의 서버에 붙을 때는 http://10.0.2.2:8080
-        buildConfigField("String", "MTS_SERVER_URL", "\"${localProp("mts.serverUrl")}\"")
+        // local.properties에 없으면 환경 변수 MTS_SERVER_URL(GitHub Actions 릴리스 빌드)을 쓴다
+        val serverUrl = localProp("mts.serverUrl").ifEmpty { System.getenv("MTS_SERVER_URL").orEmpty() }
+        buildConfigField("String", "MTS_SERVER_URL", "\"$serverUrl\"")
     }
 
     signingConfigs {

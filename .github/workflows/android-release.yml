@@ -42,6 +42,8 @@ jobs:
           MTS_KEYSTORE_PASSWORD: ${{ secrets.MTS_KEYSTORE_PASSWORD }}
           MTS_KEY_ALIAS: ${{ secrets.MTS_KEY_ALIAS }}
           MTS_KEY_PASSWORD: ${{ secrets.MTS_KEY_PASSWORD }}
+          # 공개된 중계 서버 주소라 비밀값이 아니다. 비워 두면 앱은 기기 안의 모의 시세로 동작한다
+          MTS_SERVER_URL: https://mts-relay.onrender.com
         run: >
           ./gradlew :core:test assembleRelease bundleRelease --no-daemon
           -PversionCode=${{ github.run_number }} -PversionName=${{ env.VERSION_NAME }}
@@ -60,7 +62,7 @@ jobs:
         run: >
           gh release create "$GITHUB_REF_NAME" dist/*
           --title "Toss MTS Clone $GITHUB_REF_NAME"
-          --notes "학습용 모의투자 앱입니다. APK는 휴대폰에 직접 설치, AAB는 Google Play 업로드용입니다. 시세는 모의 데이터로 동작합니다."
+          --notes "학습용 모의투자 앱입니다. APK는 휴대폰에 직접 설치, AAB는 Google Play 업로드용입니다. 시세는 중계 서버(Render)를 거쳐 한국투자증권 모의투자 시세를 받습니다. 무료 서버라 첫 접속은 최대 1분 정도 걸릴 수 있습니다."
           --verify-tag
 
       - name: 수동 실행 시 결과물 보관
