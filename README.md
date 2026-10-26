@@ -91,6 +91,17 @@ docker run -p 8080:8080 -e KIS_APP_KEY=... -e KIS_APP_SECRET=... mts-relay
 ```
 Render, Fly.io, Railway 같은 서비스에 Dockerfile 경로를 `server/Dockerfile`, 빌드 위치를 저장소 루트로 지정하면 배포할 수 있습니다.
 
+### 앱·웹을 서버에 연결
+- **웹**: `web/.env.local`(또는 Vercel 환경 변수)에 `VITE_API_URL=https://서버주소`. 없으면 브라우저 모의 시세.
+- **앱**: `local.properties`에 `mts.serverUrl=https://서버주소`. 없으면 KIS 직접 연결 또는 모의 시세.
+  - 시세 공급원 우선순위: `mts.serverUrl` → `kis.appKey/appSecret` → 모의 시세
+- 에뮬레이터에서 내 PC의 서버에 붙을 때는 `adb reverse`로 포트를 연결하고 `localhost`를 씁니다.
+  (`10.0.2.2`는 Windows 방화벽 때문에 TCP 연결이 막힐 수 있습니다)
+  ```
+  adb reverse tcp:8080 tcp:8080
+  ```
+  `local.properties`: `mts.serverUrl=http://localhost:8080`
+
 ## Android 앱 배포
 릴리스 빌드는 R8 난독화·리소스 축소가 켜져 있습니다(APK 약 1.5MB). 결과물은 두 가지입니다.
 

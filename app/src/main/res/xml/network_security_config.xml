@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- KIS 실시간 WebSocket은 ws:// (평문)만 제공하므로 해당 호스트만 예외로 허용한다 -->
+<!--
+  평문(http, ws) 통신은 아래 호스트만 예외로 허용한다.
+  - ops.koreainvestment.com: KIS 실시간 WebSocket은 ws:// 만 제공한다
+  - 10.0.2.2, localhost: 에뮬레이터에서 내 PC의 중계 서버에 붙는 개발용 주소
+  배포한 중계 서버는 https 주소를 쓰므로 예외가 필요 없다.
+-->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">ops.koreainvestment.com</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
     </domain-config>
 </network-security-config>

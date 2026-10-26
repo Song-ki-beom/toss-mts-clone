@@ -5,10 +5,25 @@ import com.example.mts.BuildConfig
 import com.example.mts.data.kis.KisConfig
 import com.example.mts.data.kis.TokenCache
 import com.example.mts.data.kis.createKisMarketDataSource
+import com.example.mts.data.remote.RemoteMarketDataSource
 import kotlinx.coroutines.CoroutineScope
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
-/** local.properties에 KIS 키가 있으면 실시세, 없으면 모의 시세를 쓴다 */
+/**
+ * 시세 공급원 선택 (local.properties):
+ * 1. mts.serverUrl 이 있으면 중계 서버 (앱에 KIS 키가 없는 증권사식 구조, 권장)
+ * 2. kis.appKey / kis.appSecret 이 있으면 KIS 직접 연결 (학습용)
+ * 3. 둘 다 없으면 모의 시세
+ */
 fun createMarketDataSource(context: Context, scope: CoroutineScope): MarketDataSource {
+    if (BuildConfig.MTS_SERVER_URL.isNotBlank()) {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+        return RemoteMarketDataSource(BuildConfig.MTS_SERVER_URL, client, scope)
+    }
     val config = KisConfig.of(BuildConfig.KIS_APP_KEY, BuildConfig.KIS_APP_SECRET, BuildConfig.KIS_MOCK)
         ?: return MarketSimulator(scope)
     return createKisMarketDataSource(config, PrefsTokenCache(context.applicationContext), scope)

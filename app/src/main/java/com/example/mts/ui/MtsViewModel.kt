@@ -29,7 +29,8 @@ class MtsViewModel(application: Application) : AndroidViewModel(application) {
     val stocks: List<Stock> = market.stocks
     val marketState: StateFlow<MarketState> = market.state
     val marketStatus: StateFlow<String> = market.status
-    val candleLabel: String = market.candleLabel
+    // 중계 서버는 연결 후 봉 단위를 알려 주므로 매번 읽는다
+    val candleLabel: String get() = market.candleLabel
     val account: StateFlow<Account> = trading.account
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 16)

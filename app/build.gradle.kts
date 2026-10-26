@@ -36,6 +36,8 @@ android {
         buildConfigField("String", "KIS_APP_KEY", "\"${localProp("kis.appKey")}\"")
         buildConfigField("String", "KIS_APP_SECRET", "\"${localProp("kis.appSecret")}\"")
         buildConfigField("boolean", "KIS_MOCK", localProp("kis.mock", "true"))
+        // 중계 서버 주소. 에뮬레이터에서 내 PC의 서버에 붙을 때는 http://10.0.2.2:8080
+        buildConfigField("String", "MTS_SERVER_URL", "\"${localProp("mts.serverUrl")}\"")
     }
 
     signingConfigs {
