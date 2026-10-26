@@ -1,0 +1,37 @@
+# Render Blueprint: 중계 서버(server/)를 Docker 웹 서비스로 배포한다.
+# Render 대시보드 → New → Blueprint 에서 이 저장소를 선택하면 아래 설정으로 서비스가 만들어진다.
+services:
+  - type: web
+    name: mts-relay
+    runtime: docker
+    # 저장소 루트를 빌드 위치로 써야 core 모듈과 Gradle Wrapper를 함께 복사할 수 있다
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # 서버와 관련된 파일이 바뀐 커밋에서만 다시 배포한다 (앱·웹만 바뀐 커밋은 건너뜀)
+    buildFilter:
+      paths:
+        - server/**
+        - core/**
+        - gradle/**
+        - build.gradle.kts
+        - settings.gradle.kts
+        - gradle.properties
+        - render.yaml
+    envVars:
+      # Render가 PORT를 정해 넣어 주고, 서버는 그 값을 읽는다
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=75
+      - key: KIS_MOCK
+        value: "true"
+      - key: ALLOWED_ORIGINS
+        value: toss-mts-clone.vercel.app,localhost:5173
+      # KIS 키는 저장소에 넣지 않는다. Blueprint를 적용할 때 Render 화면에서 직접 입력한다.
+      # 비워 두면 서버는 모의 시세로 동작한다.
+      - key: KIS_APP_KEY
+        sync: false
+      - key: KIS_APP_SECRET
+        sync: false

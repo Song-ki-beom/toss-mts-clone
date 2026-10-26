@@ -89,7 +89,30 @@ Docker (저장소 루트에서):
 docker build -f server/Dockerfile -t mts-relay .
 docker run -p 8080:8080 -e KIS_APP_KEY=... -e KIS_APP_SECRET=... mts-relay
 ```
-Render, Fly.io, Railway 같은 서비스에 Dockerfile 경로를 `server/Dockerfile`, 빌드 위치를 저장소 루트로 지정하면 배포할 수 있습니다.
+### Render 배포
+배포 설정은 저장소 루트의 `render.yaml`(Blueprint)에 있습니다. Docker 웹 서비스, 싱가포르 지역, 무료 플랜, 상태 확인 `/api/health`.
+
+1. https://render.com 에 GitHub 계정으로 가입·로그인합니다.
+2. **New → Blueprint**를 누르고 GitHub 연동을 허용한 뒤 `toss-mts-clone` 저장소를 선택합니다.
+   (Private 저장소는 Render GitHub 앱에 이 저장소 접근 권한을 줘야 목록에 보입니다)
+3. `render.yaml`을 읽어 `mts-relay` 서비스가 표시됩니다. 환경 변수 입력 칸에서
+   - `KIS_APP_KEY`, `KIS_APP_SECRET`: KIS 키를 넣으면 실시세, **비워 두면 모의 시세**
+   - 나머지(`KIS_MOCK`, `ALLOWED_ORIGINS`, `JAVA_OPTS`)는 미리 채워져 있습니다.
+4. **Apply**를 누르면 Docker 이미지를 빌드하고 배포합니다. 첫 빌드는 Gradle과 라이브러리를 받느라 5~10분 걸립니다.
+5. 완료되면 `https://mts-relay-xxxx.onrender.com` 같은 주소가 생깁니다. `https://주소/api/health`가 `{"status":"ok",...}`를 돌려주면 성공입니다.
+
+배포 후 연결
+- **웹(Vercel)**: 프로젝트 Settings → Environment Variables에 `VITE_API_URL=https://Render주소`를 추가하고 다시 배포(Deployments → Redeploy)합니다.
+  Vite 환경 변수는 빌드할 때 들어가므로 다시 배포해야 반영됩니다.
+- **앱**: `local.properties`에 `mts.serverUrl=https://Render주소`
+- Vercel 주소가 바뀌면 Render의 `ALLOWED_ORIGINS`도 바꿔야 브라우저가 서버를 호출할 수 있습니다.
+
+알아둘 점
+- 무료 플랜은 15분 동안 요청이 없으면 잠들고, 다음 요청 때 깨어나는 데 1분 정도 걸립니다. 그동안 웹은 "서버 연결 중"으로 보이다가 자동으로 연결됩니다.
+- `main`에 푸시할 때 `server/`, `core/`, Gradle 설정이 바뀌었을 때만 자동으로 다시 배포합니다.
+- KIS 서버가 해외 IP 접속을 제한하는 경우 실시세 연결이 실패할 수 있습니다. 서버 상태 칩이나 `/api/health`의 `market` 값으로 확인하세요.
+
+Fly.io, Railway 같은 다른 서비스도 Dockerfile 경로를 `server/Dockerfile`, 빌드 위치를 저장소 루트로 지정하면 같은 방식으로 배포할 수 있습니다.
 
 ### 앱·웹을 서버에 연결
 - **웹**: `web/.env.local`(또는 Vercel 환경 변수)에 `VITE_API_URL=https://서버주소`. 없으면 브라우저 모의 시세.
