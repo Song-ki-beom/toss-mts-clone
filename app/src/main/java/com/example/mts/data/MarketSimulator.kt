@@ -26,6 +26,10 @@ interface MarketDataSource {
     /** 차트 제목에 붙일 봉 단위 설명 */
     val candleLabel: String
 
+    /** 일·주·월·년봉. 마지막 봉은 현재 진행 중인 기간이다. 기본은 모의 과거 시세 */
+    suspend fun history(code: String, period: Period, quote: Quote): List<Candle> =
+        HistoryGenerator.build(code, period, quote)
+
     fun close() {}
 }
 

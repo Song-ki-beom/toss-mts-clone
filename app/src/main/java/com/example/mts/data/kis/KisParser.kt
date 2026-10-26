@@ -1,6 +1,7 @@
 package com.example.mts.data.kis
 
 import com.example.mts.data.Candle
+import com.example.mts.data.KST
 import com.example.mts.data.OrderBook
 import com.example.mts.data.OrderBookLevel
 import com.example.mts.data.Quote
@@ -13,6 +14,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class KisException(val code: String, message: String) : Exception(if (code.isBlank()) message else "[$code] $message")
 
@@ -87,6 +90,25 @@ object KisParser {
                 TimedCandle(
                     time = it.str("stck_cntg_hour"),
                     candle = Candle(it.long("stck_oprc"), it.long("stck_hgpr"), it.long("stck_lwpr"), it.long("stck_prpr"), it.long("cntg_vol")),
+                )
+            }
+            .reversed()
+    }
+
+    /** 국내주식 기간별 시세 (FHKST03010100). 응답은 최신순이라 오래된 순으로 뒤집는다 */
+    fun parsePeriodCandles(body: JsonObject): List<Candle> {
+        val rows = body["output2"] as? JsonArray ?: return emptyList()
+        return rows.map { it.jsonObject }
+            .filter { it.long("stck_clpr") > 0 && it.str("stck_bsop_date").length == 8 }
+            .map {
+                Candle(
+                    open = it.long("stck_oprc"),
+                    high = it.long("stck_hgpr"),
+                    low = it.long("stck_lwpr"),
+                    close = it.long("stck_clpr"),
+                    volume = it.long("acml_vol"),
+                    time = LocalDate.parse(it.str("stck_bsop_date"), DateTimeFormatter.BASIC_ISO_DATE)
+                        .atStartOfDay(KST).toInstant().toEpochMilli(),
                 )
             }
             .reversed()

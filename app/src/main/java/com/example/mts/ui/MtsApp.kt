@@ -74,6 +74,7 @@ fun MtsApp(vm: MtsViewModel = viewModel()) {
             quote = selectedQuote,
             candles = market.candles[selected.code].orEmpty(),
             candleLabel = vm.candleLabel,
+            loadHistory = { period -> vm.history(selected.code, period) },
             orderBook = market.orderBooks[selected.code],
             holding = account.holdings[selected.code],
             snackbarHostState = snackbar,

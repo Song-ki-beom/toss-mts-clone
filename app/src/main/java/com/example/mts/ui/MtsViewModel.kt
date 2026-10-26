@@ -4,15 +4,18 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mts.data.Account
+import com.example.mts.data.Candle
 import com.example.mts.data.MarketDataSource
 import com.example.mts.data.MarketState
 import com.example.mts.data.Order
 import com.example.mts.data.OrderStatus
 import com.example.mts.data.OrderType
+import com.example.mts.data.Period
 import com.example.mts.data.Side
 import com.example.mts.data.Stock
 import com.example.mts.data.TradingEngine
 import com.example.mts.data.kis.createMarketDataSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +57,22 @@ class MtsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun cancel(orderId: Long) {
         if (trading.cancel(orderId)) _messages.tryEmit("주문을 취소했어요")
+    }
+
+    private val historyCache = mutableMapOf<Pair<String, Period>, List<Candle>>()
+
+    /** 일·주·월·년봉. 종목·기간별로 한 번 받은 결과는 다시 쓴다. 불러오지 못하면 빈 목록 */
+    suspend fun history(code: String, period: Period): List<Candle> {
+        historyCache[code to period]?.let { return it }
+        val quote = marketState.value.quotes[code] ?: return emptyList()
+        return try {
+            market.history(code, period, quote).also { if (it.isNotEmpty()) historyCache[code to period] = it }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _messages.tryEmit("차트를 불러오지 못했어요: ${e.message}")
+            emptyList()
+        }
     }
 
     override fun onCleared() {

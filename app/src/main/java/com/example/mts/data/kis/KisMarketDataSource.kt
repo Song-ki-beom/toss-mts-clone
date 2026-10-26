@@ -6,6 +6,7 @@ import com.example.mts.data.DEFAULT_WATCHLIST
 import com.example.mts.data.MarketDataSource
 import com.example.mts.data.MarketSimulator
 import com.example.mts.data.MarketState
+import com.example.mts.data.Period
 import com.example.mts.data.Quote
 import com.example.mts.data.Stock
 import kotlinx.coroutines.CancellationException
@@ -72,6 +73,10 @@ class KisMarketDataSource(
         job.cancel()
         socket?.close(1000, null)
     }
+
+    /** 실제 일·주·월·년봉. 모의 데이터로 대신하지 않고, 실패하면 오류를 그대로 올린다 */
+    override suspend fun history(code: String, period: Period, quote: Quote): List<Candle> =
+        api.periodCandles(code, period, nowKst().toLocalDate())
 
     private suspend fun run() {
         try {

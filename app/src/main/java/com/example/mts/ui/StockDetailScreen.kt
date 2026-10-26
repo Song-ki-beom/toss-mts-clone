@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,8 +53,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.sign
 import com.example.mts.data.Candle
 import com.example.mts.data.Holding
+import com.example.mts.data.Period
+import com.example.mts.data.periodReturn
+import com.example.mts.data.withLivePrice
 import com.example.mts.data.OrderBook
 import com.example.mts.data.OrderBookLevel
 import com.example.mts.data.OrderType
@@ -76,6 +81,7 @@ fun StockDetailScreen(
     quote: Quote,
     candles: List<Candle>,
     candleLabel: String,
+    loadHistory: suspend (Period) -> List<Candle>,
     orderBook: OrderBook?,
     holding: Holding?,
     snackbarHostState: SnackbarHostState,
@@ -85,7 +91,6 @@ fun StockDetailScreen(
     sellableQuantity: () -> Long,
 ) {
     var draft by remember { mutableStateOf<OrderDraft?>(null) }
-    var chartMode by rememberSaveable { mutableStateOf(ChartMode.LINE) }
 
     Scaffold(
         containerColor = Mts.colors.card,
@@ -117,31 +122,7 @@ fun StockDetailScreen(
     ) { padding ->
         LazyColumn(contentPadding = padding) {
             item { PriceHeader(stock, quote, holding) }
-            item {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(candleLabel, style = MaterialTheme.typography.labelMedium, color = Mts.colors.textTertiary, modifier = Modifier.weight(1f))
-                    PillToggle(
-                        options = ChartMode.entries,
-                        selected = chartMode,
-                        label = { it.label },
-                        onSelect = { chartMode = it },
-                        modifier = Modifier.width(140.dp),
-                    )
-                }
-                val chartModifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-                when {
-                    candles.isEmpty() -> EmptyMessage("차트 데이터가 없어요. 장중에 실시간 체결이 들어오면 그려져요.")
-                    chartMode == ChartMode.LINE -> LineChart(candles, priceColor(quote.change, Mts.colors.textTertiary), chartModifier)
-                    else -> CandleChart(candles, quote.price, chartModifier)
-                }
-                Spacer(Modifier.height(12.dp))
-            }
+            item { ChartSection(stock.code, quote, candles, candleLabel, loadHistory) }
             item {
                 SectionGap()
                 MarketInfo(quote)
@@ -180,6 +161,82 @@ fun StockDetailScreen(
             },
         )
     }
+}
+
+/** 기간 탭(실시간·일·주·월·년) + 라인/캔들 전환 + 날짜 축 */
+@Composable
+private fun ChartSection(
+    code: String,
+    quote: Quote,
+    liveCandles: List<Candle>,
+    liveLabel: String,
+    loadHistory: suspend (Period) -> List<Candle>,
+) {
+    var period by rememberSaveable { mutableStateOf(Period.LIVE) }
+    var chartMode by rememberSaveable { mutableStateOf(ChartMode.LINE) }
+    // null = 불러오는 중
+    var history by remember(code, period) { mutableStateOf<List<Candle>?>(null) }
+    LaunchedEffect(code, period) {
+        if (period != Period.LIVE) history = loadHistory(period)
+    }
+
+    val candles: List<Candle>? = when {
+        period == Period.LIVE -> liveCandles
+        else -> history?.withLivePrice(quote.price)
+    }
+    val ret = if (period == Period.LIVE) quote.changeRate else candles?.periodReturn() ?: 0.0
+    val color = priceColor(if (period == Period.LIVE) quote.change else ret.sign.toLong(), Mts.colors.textTertiary)
+
+    Column(Modifier.padding(horizontal = 20.dp)) {
+        PillToggle(
+            options = Period.entries,
+            selected = period,
+            label = { it.label },
+            onSelect = { period = it },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (period == Period.LIVE) "$liveLabel · 어제보다 " else "${period.caption} 동안 ",
+                style = MaterialTheme.typography.labelMedium,
+                color = Mts.colors.textTertiary,
+            )
+            Text(formatRate(ret), style = MaterialTheme.typography.labelLarge, color = color, modifier = Modifier.weight(1f))
+            PillToggle(
+                options = ChartMode.entries,
+                selected = chartMode,
+                label = { it.label },
+                onSelect = { chartMode = it },
+                modifier = Modifier.width(120.dp),
+            )
+        }
+    }
+
+    val chartModifier = Modifier
+        .fillMaxWidth()
+        .height(220.dp)
+        .padding(horizontal = 20.dp, vertical = 12.dp)
+    when {
+        candles == null -> Box(chartModifier, contentAlignment = Alignment.Center) {
+            Text("차트를 불러오는 중이에요", style = MaterialTheme.typography.bodyMedium, color = Mts.colors.textTertiary)
+        }
+        candles.size < 2 -> EmptyMessage(
+            if (period == Period.LIVE) "차트 데이터가 없어요. 장중에 실시간 체결이 들어오면 그려져요." else "차트 데이터를 불러오지 못했어요."
+        )
+        chartMode == ChartMode.LINE -> LineChart(candles, color, chartModifier)
+        else -> CandleChart(candles, quote.price, chartModifier)
+    }
+
+    // 날짜 축: 처음 · 가운데 · 끝
+    val dated = candles?.takeIf { period != Period.LIVE && it.size >= 2 && it.first().time != null }
+    if (dated != null) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf(dated.first(), dated[dated.size / 2], dated.last()).forEach {
+                Text(period.formatAxis(it.time!!), style = MaterialTheme.typography.labelSmall, color = Mts.colors.textTertiary)
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
 }
 
 @Composable

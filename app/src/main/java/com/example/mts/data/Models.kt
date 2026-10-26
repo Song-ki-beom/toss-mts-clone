@@ -26,7 +26,8 @@ data class Quote(
     val changeRate: Double get() = change * 100.0 / prevClose
 }
 
-data class Candle(val open: Long, val high: Long, val low: Long, val close: Long, val volume: Long)
+/** time은 봉의 기준 시각(epoch ms). 실시간 봉에는 없다 */
+data class Candle(val open: Long, val high: Long, val low: Long, val close: Long, val volume: Long, val time: Long? = null)
 
 data class OrderBookLevel(val price: Long, val quantity: Long)
 

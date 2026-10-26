@@ -1,6 +1,8 @@
 package com.example.mts.data.kis
 
+import com.example.mts.data.Candle
 import com.example.mts.data.OrderBook
+import com.example.mts.data.Period
 import com.example.mts.data.Quote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,6 +17,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /** KIS REST API. 호출은 순서대로 하나씩, 서버 초당 한도에 맞춰 간격을 두고 보낸다. */
 class KisApi(
@@ -52,6 +56,26 @@ class KisApi(
             "FID_PW_DATA_INCU_YN" to "N",
         )
         return KisParser.parseMinuteCandles(get(PATH_MINUTE_CHART, "FHKST03010200", params))
+    }
+
+    /** 국내주식 기간별 시세 (일·주·월·년봉, 수정주가). 한 번에 최대 100개, 오래된 순으로 돌려준다 */
+    suspend fun periodCandles(code: String, period: Period, today: LocalDate): List<Candle> {
+        val (divCode, from) = when (period) {
+            Period.DAY -> "D" to today.minusDays(180)
+            Period.WEEK -> "W" to today.minusYears(2)
+            Period.MONTH -> "M" to today.minusYears(5)
+            Period.YEAR -> "Y" to today.minusYears(15)
+            Period.LIVE -> error("실시간은 기간별 시세가 아니다")
+        }
+        val params = linkedMapOf(
+            "FID_COND_MRKT_DIV_CODE" to "J",
+            "FID_INPUT_ISCD" to code,
+            "FID_INPUT_DATE_1" to from.format(DateTimeFormatter.BASIC_ISO_DATE),
+            "FID_INPUT_DATE_2" to today.format(DateTimeFormatter.BASIC_ISO_DATE),
+            "FID_PERIOD_DIV_CODE" to divCode,
+            "FID_ORG_ADJ_PRC" to "0",
+        )
+        return KisParser.parsePeriodCandles(get(PATH_PERIOD_CHART, "FHKST03010100", params))
     }
 
     private suspend fun token(): String =
@@ -141,5 +165,6 @@ class KisApi(
         const val PATH_PRICE = "/uapi/domestic-stock/v1/quotations/inquire-price"
         const val PATH_ASKING = "/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn"
         const val PATH_MINUTE_CHART = "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice"
+        const val PATH_PERIOD_CHART = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
     }
 }

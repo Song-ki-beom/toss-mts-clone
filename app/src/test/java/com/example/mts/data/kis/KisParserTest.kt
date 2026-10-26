@@ -59,6 +59,25 @@ class KisParserTest {
     }
 
     @Test
+    fun parsesPeriodCandlesOldestFirstWithDates() {
+        val body = KisParser.parseObject(
+            """{"rt_cd":"0","output1":{"stck_prpr":"71900"},"output2":[
+                {"stck_bsop_date":"20261026","stck_oprc":"71800","stck_hgpr":"72600","stck_lwpr":"71400","stck_clpr":"72300","acml_vol":"12345678"},
+                {"stck_bsop_date":"20261023","stck_oprc":"70900","stck_hgpr":"71700","stck_lwpr":"70800","stck_clpr":"71500","acml_vol":"9876543"},
+                {"stck_bsop_date":"","stck_oprc":"","stck_hgpr":"","stck_lwpr":"","stck_clpr":"","acml_vol":""}
+            ]}"""
+        )
+        val candles = KisParser.parsePeriodCandles(body)
+
+        assertEquals(2, candles.size)
+        assertEquals(71_500L, candles.first().close)
+        assertEquals(72_300L, candles.last().close)
+        assertEquals(12_345_678L, candles.last().volume)
+        val date = java.time.Instant.ofEpochMilli(candles.last().time!!).atZone(com.example.mts.data.KST).toLocalDate()
+        assertEquals(java.time.LocalDate.of(2026, 10, 26), date)
+    }
+
+    @Test
     fun parsesRealtimeTradeFrames() {
         fun record(code: String, price: Int, signCode: String, change: String) =
             MutableList(46) { "0" }.apply {
