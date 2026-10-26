@@ -98,6 +98,24 @@ class KisParserTest {
     }
 
     @Test
+    fun snapsMockMidpointTradeToAsk() {
+        // KIS 모의 서버에서 실제로 받은 프레임: 매도1호가 215,500 · 매수1호가 215,000 사이 중간값 215,250
+        val raw = "0|H0STCNT0|001|005930^140341^215250^5^-250^-0.12^213691.93^213500^216000^211500^215500^215000^5^8060134^1722386067500^42963^51210^8247^92.15^4011957^3697017^1^0.46^49.92^090008^2^1750^090847^5^-750^090451^2^3750^20261026^20^N^119255^1492^552689^508958^0.14^11642683^69.23^0^^213500^2"
+        val trade = KisParser.parseFrame(raw).single() as KisFrame.Trade
+        assertEquals(215_250L, trade.price)
+        assertEquals(215_500L, trade.askPrice)
+
+        val snapped = trade.snappedToAsk()
+        assertEquals(215_500L, snapped.price)
+        assertEquals(0L, snapped.change)  // 전일 종가 215,500은 그대로
+        assertEquals(trade.price - trade.change, snapped.price - snapped.change)
+
+        // 호가 단위에 맞는 체결가는 건드리지 않는다
+        val onTick = trade.copy(price = 215_000, change = -500)
+        assertEquals(onTick, onTick.snappedToAsk())
+    }
+
+    @Test
     fun parsesRealtimeAskingFrame() {
         val f = MutableList(59) { "0" }
         f[0] = "005930"

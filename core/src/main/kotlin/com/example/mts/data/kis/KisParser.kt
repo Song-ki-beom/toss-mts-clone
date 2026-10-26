@@ -34,7 +34,22 @@ sealed interface KisFrame {
         val low: Long,
         val tradeVolume: Long,
         val accVolume: Long,
-    ) : KisFrame
+        val askPrice: Long = 0,
+    ) : KisFrame {
+        /**
+         * KIS 모의 서버는 매수 체결가를 매도·매수 1호가의 중간값으로 보내 호가 단위에 맞지 않을 때가 있다.
+         * 그런 체결은 매수 체결이 일어나는 매도 1호가로 맞춘다. 전일 종가가 바뀌지 않도록 대비도 같이 옮긴다.
+         */
+        fun snappedToAsk(): Trade {
+            if (isOnKrxTick(price) || askPrice <= 0) return this
+            return copy(
+                price = askPrice,
+                change = change + (askPrice - price),
+                high = maxOf(high, askPrice),
+                low = minOf(low, askPrice),
+            )
+        }
+    }
 
     data class Asking(val code: String, val book: OrderBook) : KisFrame
 
@@ -171,7 +186,7 @@ object KisParser {
     }
 
     // H0STCNT0: 0 종목코드, 1 체결시간, 2 현재가, 3 전일대비부호, 4 전일대비, 5 등락률,
-    //           7 시가, 8 고가, 9 저가, 12 체결거래량, 13 누적거래량
+    //           7 시가, 8 고가, 9 저가, 10 매도호가1, 12 체결거래량, 13 누적거래량
     private fun parseTrade(f: List<String>): KisFrame.Trade? {
         if (f.size < 14) return null
         var change = f[4].num()
@@ -187,6 +202,7 @@ object KisParser {
             low = f[9].num(),
             tradeVolume = f[12].num(),
             accVolume = f[13].num(),
+            askPrice = f[10].num(),
         )
     }
 

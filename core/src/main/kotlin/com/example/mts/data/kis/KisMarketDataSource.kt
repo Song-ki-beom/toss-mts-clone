@@ -150,9 +150,10 @@ class KisMarketDataSource(
                     KisFrame.PingPong -> webSocket.send(text)
                     is KisFrame.Trade -> {
                         if (!isOnKrxTick(frame.price) && offTickLogs.getAndIncrement() < MAX_OFF_TICK_LOGS) {
-                            log("호가 단위에 맞지 않는 체결가 ${frame.code} ${frame.price}: $text")
+                            log("호가 단위에 맞지 않는 체결가 ${frame.code} ${frame.price} (매도1호가 ${frame.askPrice}): $text")
                         }
-                        onTrade(frame)
+                        // 모의투자에서만 보정한다. 실전 데이터는 받은 그대로 쓴다
+                        onTrade(if (config.isMock) frame.snappedToAsk() else frame)
                     }
                     is KisFrame.Asking -> _state.update { it.copy(orderBooks = it.orderBooks + (frame.code to frame.book)) }
                     is KisFrame.Control -> if (!frame.ok && frame.message.isNotBlank()) {
