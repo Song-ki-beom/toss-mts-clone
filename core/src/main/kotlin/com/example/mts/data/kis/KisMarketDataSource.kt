@@ -33,12 +33,17 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /** KIS 실시세 데이터 소스를 만든다. 토큰 저장 방식만 실행 환경(앱, 서버)이 정한다 */
-fun createKisMarketDataSource(config: KisConfig, tokenCache: TokenCache, scope: CoroutineScope): KisMarketDataSource {
+fun createKisMarketDataSource(
+    config: KisConfig,
+    tokenCache: TokenCache,
+    scope: CoroutineScope,
+    log: (String) -> Unit = {},
+): KisMarketDataSource {
     val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
-    return KisMarketDataSource(config, KisApi(config, tokenCache, client), client, scope)
+    return KisMarketDataSource(config, KisApi(config, tokenCache, client), client, scope, log = log)
 }
 
 /**
@@ -51,6 +56,7 @@ class KisMarketDataSource(
     private val client: OkHttpClient,
     scope: CoroutineScope,
     override val stocks: List<Stock> = DEFAULT_WATCHLIST,
+    private val log: (String) -> Unit = {},
 ) : MarketDataSource {
 
     private val _state = MutableStateFlow(MarketState(emptyMap(), emptyMap(), emptyMap()))
@@ -62,6 +68,8 @@ class KisMarketDataSource(
     override val candleLabel = "1분봉"
 
     private val lastMinute = ConcurrentHashMap<String, String>()
+    // 호가 단위에 맞지 않는 체결가가 오면 원본 프레임을 몇 건만 남겨 필드 매핑을 확인한다
+    private val offTickLogs = java.util.concurrent.atomic.AtomicInteger()
     private var lastError: Exception? = null
     @Volatile private var socket: WebSocket? = null
     private val job: Job = scope.launch { run() }
@@ -140,7 +148,12 @@ class KisMarketDataSource(
             for (frame in frames) {
                 when (frame) {
                     KisFrame.PingPong -> webSocket.send(text)
-                    is KisFrame.Trade -> onTrade(frame)
+                    is KisFrame.Trade -> {
+                        if (!isOnKrxTick(frame.price) && offTickLogs.getAndIncrement() < MAX_OFF_TICK_LOGS) {
+                            log("호가 단위에 맞지 않는 체결가 ${frame.code} ${frame.price}: $text")
+                        }
+                        onTrade(frame)
+                    }
                     is KisFrame.Asking -> _state.update { it.copy(orderBooks = it.orderBooks + (frame.code to frame.book)) }
                     is KisFrame.Control -> if (!frame.ok && frame.message.isNotBlank()) {
                         _status.value = "${config.modeLabel} · ${frame.message}"
@@ -209,6 +222,7 @@ class KisMarketDataSource(
 
     private companion object {
         const val MAX_CANDLES = 60
+        const val MAX_OFF_TICK_LOGS = 20
         val KST: ZoneId = ZoneId.of("Asia/Seoul")
         val MARKET_OPEN: LocalTime = LocalTime.of(9, 0)
         val MARKET_CLOSE: LocalTime = LocalTime.of(15, 30)

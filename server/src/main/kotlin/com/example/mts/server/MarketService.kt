@@ -10,6 +10,7 @@ import com.example.mts.data.kis.KisConfig
 import com.example.mts.data.kis.createKisMarketDataSource
 import com.example.mts.data.remote.MarketSnapshot
 import kotlinx.coroutines.CoroutineScope
+import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.util.concurrent.ConcurrentHashMap
 
@@ -21,7 +22,8 @@ class UnavailableException(message: String) : RuntimeException(message)
 fun createMarketFromEnv(scope: CoroutineScope, env: (String) -> String? = System::getenv): MarketDataSource {
     val config = KisConfig.of(env("KIS_APP_KEY"), env("KIS_APP_SECRET"), isMock = env("KIS_MOCK")?.lowercase() != "false")
         ?: return MarketSimulator(scope)
-    return createKisMarketDataSource(config, InMemoryTokenCache(), scope)
+    val log = LoggerFactory.getLogger("KisMarket")
+    return createKisMarketDataSource(config, InMemoryTokenCache(), scope, log = log::warn)
 }
 
 /** 라우트에서 쓰는 조회 로직. 기간별 봉은 KIS 호출 한도를 아끼기 위해 잠시 캐시한다 */
