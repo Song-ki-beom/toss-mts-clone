@@ -1,10 +1,8 @@
 package com.example.mts.data.kis
 
-import android.content.Context
 import com.example.mts.data.Candle
 import com.example.mts.data.DEFAULT_WATCHLIST
 import com.example.mts.data.MarketDataSource
-import com.example.mts.data.MarketSimulator
 import com.example.mts.data.MarketState
 import com.example.mts.data.Period
 import com.example.mts.data.Quote
@@ -34,14 +32,13 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-/** local.properties에 KIS 키가 있으면 실시세, 없으면 모의 시세를 쓴다 */
-fun createMarketDataSource(context: Context, scope: CoroutineScope): MarketDataSource {
-    val config = KisConfig.fromBuildConfig() ?: return MarketSimulator(scope)
+/** KIS 실시세 데이터 소스를 만든다. 토큰 저장 방식만 실행 환경(앱, 서버)이 정한다 */
+fun createKisMarketDataSource(config: KisConfig, tokenCache: TokenCache, scope: CoroutineScope): KisMarketDataSource {
     val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
-    return KisMarketDataSource(config, KisApi(config, PrefsTokenCache(context.applicationContext), client), client, scope)
+    return KisMarketDataSource(config, KisApi(config, tokenCache, client), client, scope)
 }
 
 /**

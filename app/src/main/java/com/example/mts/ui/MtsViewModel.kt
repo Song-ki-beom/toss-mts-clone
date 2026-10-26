@@ -14,7 +14,7 @@ import com.example.mts.data.Period
 import com.example.mts.data.Side
 import com.example.mts.data.Stock
 import com.example.mts.data.TradingEngine
-import com.example.mts.data.kis.createMarketDataSource
+import com.example.mts.data.createMarketDataSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow

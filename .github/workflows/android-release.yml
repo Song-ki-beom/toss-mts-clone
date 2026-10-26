@@ -13,12 +13,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: 서명 키 복원
         env:
@@ -43,7 +43,7 @@ jobs:
           MTS_KEY_ALIAS: ${{ secrets.MTS_KEY_ALIAS }}
           MTS_KEY_PASSWORD: ${{ secrets.MTS_KEY_PASSWORD }}
         run: >
-          ./gradlew testDebugUnitTest assembleRelease bundleRelease --no-daemon
+          ./gradlew :core:test assembleRelease bundleRelease --no-daemon
           -PversionCode=${{ github.run_number }} -PversionName=${{ env.VERSION_NAME }}
 
       - name: 파일 이름 정리
@@ -65,7 +65,7 @@ jobs:
 
       - name: 수동 실행 시 결과물 보관
         if: github.ref_type != 'tag'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-release
           path: dist/

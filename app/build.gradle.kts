@@ -85,8 +85,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
 
-    implementation("com.squareup.okhttp3:okhttp:5.5.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
-
-    testImplementation("junit:junit:4.13.2")
+    // 모델, 시세·주문 엔진, KIS 연동 (OkHttp, kotlinx.serialization, 코루틴을 함께 가져온다)
+    implementation(project(":core"))
 }
