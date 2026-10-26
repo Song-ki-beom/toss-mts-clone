@@ -51,6 +51,53 @@ npx vercel           # 처음: 로그인, 프로젝트 연결 (Root Directory �
 npx vercel --prod    # 운영 배포
 ```
 
+## Android 앱 배포
+릴리스 빌드는 R8 난독화·리소스 축소가 켜져 있습니다(APK 약 1.5MB). 결과물은 두 가지입니다.
+
+| 파일 | 용도 |
+|---|---|
+| `app-release.apk` | 휴대폰에 직접 설치, GitHub Release로 배포 |
+| `app-release.aab` | Google Play Console 업로드용 |
+
+### 1. 서명 키 만들기 (처음 한 번)
+서명 키를 잃어버리면 같은 앱으로 업데이트할 수 없으니 안전한 곳에 백업하세요. 키와 비밀번호는 Git에 올라가지 않습니다.
+```
+"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore release-key.jks -alias mts-release -keyalg RSA -keysize 2048 -validity 10000
+```
+`keystore.properties.example`을 `keystore.properties`로 복사해 비밀번호를 채웁니다.
+
+### 2. 내 PC에서 릴리스 빌드
+```
+gradlew.bat assembleRelease bundleRelease
+```
+결과물: `app/build/outputs/apk/release/app-release.apk`, `app/build/outputs/bundle/release/app-release.aab`
+(`keystore.properties`가 없으면 서명되지 않은 `app-release-unsigned.apk`가 만들어집니다.)
+
+### 3. GitHub Actions로 자동 배포
+저장소 **Settings → Secrets and variables → Actions**에 시크릿 4개를 등록합니다.
+
+| 시크릿 | 값 |
+|---|---|
+| `MTS_KEYSTORE_BASE64` | 키 파일을 Base64로 바꾼 문자열 (아래 명령) |
+| `MTS_KEYSTORE_PASSWORD` | 키스토어 비밀번호 |
+| `MTS_KEY_ALIAS` | `mts-release` |
+| `MTS_KEY_PASSWORD` | 키 비밀번호 |
+
+```
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release-key.jks")) | Set-Clipboard
+```
+그다음 버전 태그를 푸시하면 `.github/workflows/android-release.yml`이 테스트 → 서명된 APK·AAB 빌드 → GitHub Release 생성까지 합니다.
+```
+git tag v0.3.0
+git push origin v0.3.0
+```
+`main`에 푸시하거나 PR을 열면 `.github/workflows/ci.yml`이 앱·웹 빌드와 테스트를 돌립니다.
+
+### 4. Google Play (선택)
+Play Console(등록비 1회 25달러)에서 앱을 만들고 **내부 테스트** 트랙에 AAB를 올리는 것부터 시작하세요.
+실제 금융 서비스로 오해될 수 있는 앱은 심사에서 제한될 수 있으니, 설명에 학습용 모의투자 앱임을 분명히 적어야 합니다.
+릴리스 빌드에는 KIS 키를 넣지 마세요. 배포된 APK에서 키를 꺼낼 수 있습니다.
+
 ## KIS 실시세 연동
 1. 한국투자증권 계좌를 만들고 [KIS Developers](https://apiportal.koreainvestment.com)에서 모의투자 신청 후 App Key / App Secret을 발급받습니다.
 2. 프로젝트 루트의 `local.properties`(Git에 올라가지 않음)에 추가합니다.
