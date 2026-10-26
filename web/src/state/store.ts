@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react'
-import { MarketSimulator } from '../domain/marketSimulator'
+import { createFeed } from '../domain/feed'
 import { TradingEngine } from '../domain/tradingEngine'
 import { SIDE_LABEL, type Order, type OrderType, type Side, type Stock } from '../domain/models'
 import { formatWon } from '../domain/format'
 
-export const market = new MarketSimulator()
+/** VITE_API_URL 이 있으면 중계 서버 시세, 없으면 브라우저 안 모의 시세 */
+export const market = createFeed()
 export const trading = new TradingEngine()
 
 // ── 토스트 알림
@@ -42,6 +43,7 @@ market.subscribe(() => {
 
 // ── React 훅
 export const useMarket = () => useSyncExternalStore(market.subscribe, market.getState)
+export const useMarketStatus = () => useSyncExternalStore(market.subscribe, market.getStatus)
 export const useAccount = () => useSyncExternalStore(trading.subscribe, trading.getState)
 export const useToasts = () => useSyncExternalStore(subscribeToasts, () => toasts)
 

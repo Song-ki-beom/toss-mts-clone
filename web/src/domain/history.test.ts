@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildHistory, PERIOD_SPECS, periodReturn, type HistoryPeriod } from './history'
+import { buildHistory, PERIOD_SPECS, periodReturn, withLivePrice, type HistoryPeriod } from './history'
 import { tickSize, type Quote } from './models'
 
 const quote: Quote = { code: '005930', price: 72_300, prevClose: 71_500, open: 71_800, high: 72_600, low: 71_400, volume: 120_000 }
@@ -55,6 +55,19 @@ describe('buildHistory', () => {
     const years = buildHistory('005930', 'YEAR', quote, today)
     expect(new Date(years[0].time!).getFullYear()).toBe(2012)
     expect(new Date(years.at(-1)!.time!).getFullYear()).toBe(2026)
+  })
+})
+
+describe('withLivePrice', () => {
+  it('마지막 봉만 실시간 가격으로 바꾼다', () => {
+    const candles = [
+      { open: 100, high: 110, low: 90, close: 105, volume: 0 },
+      { open: 105, high: 112, low: 100, close: 108, volume: 0 },
+    ]
+    const updated = withLivePrice(candles, 120)
+    expect(updated[0]).toBe(candles[0])
+    expect(updated[1]).toEqual({ open: 105, high: 120, low: 100, close: 120, volume: 0 })
+    expect(withLivePrice([], 1)).toEqual([])
   })
 })
 

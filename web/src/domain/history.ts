@@ -73,6 +73,13 @@ export function currentBar(period: HistoryPeriod, prev: Candle, quote: Quote, ti
   }
 }
 
+/** 진행 중인 마지막 봉에 실시간 가격을 반영한다 */
+export function withLivePrice(candles: Candle[], price: number): Candle[] {
+  if (candles.length === 0) return candles
+  const last = candles[candles.length - 1]
+  return [...candles.slice(0, -1), { ...last, high: Math.max(last.high, price), low: Math.min(last.low, price), close: price }]
+}
+
 /** 첫 봉 시가 대비 마지막 봉 종가의 등락률(%) */
 export function periodReturn(candles: Candle[]): number {
   if (candles.length === 0) return 0

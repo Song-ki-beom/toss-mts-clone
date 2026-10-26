@@ -77,6 +77,14 @@
   background: var(--brand);
 }
 
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 120px 24px;
+}
+
 /* ── 3단 레이아웃 */
 .layout {
   display: grid;

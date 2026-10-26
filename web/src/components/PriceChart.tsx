@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { change, changeRate, type Candle, type Quote } from '../domain/models'
-import { buildHistory, currentBar, PERIOD_LABEL, PERIOD_SPECS, PERIODS, periodReturn, type HistoryPeriod, type Period } from '../domain/history'
+import { PERIOD_LABEL, PERIOD_SPECS, PERIODS, periodReturn, withLivePrice, type HistoryPeriod, type Period } from '../domain/history'
 import { formatAxisDate, formatPrice, formatRate, tone } from '../domain/format'
 import { Card, Segmented, useWidth } from './common'
 
@@ -18,25 +18,43 @@ interface Props {
   /** 실시간 탭에 쓰는 5초봉 */
   liveCandles: Candle[]
   liveLabel: string
+  /** 일·주·월·년봉을 불러온다 (브라우저 모의 시세 또는 중계 서버) */
+  loadHistory: (period: HistoryPeriod) => Promise<Candle[]>
 }
 
-export function PriceChart({ code, quote, liveCandles, liveLabel }: Props) {
+type HistoryState = { key: string; candles: Candle[] | null; error: string | null }
+
+export function PriceChart({ code, quote, liveCandles, liveLabel, loadHistory }: Props) {
   const [mode, setMode] = useState<Mode>('LINE')
   const [period, setPeriod] = useState<Period>('LIVE')
   const [ref, width] = useWidth<HTMLDivElement>()
+  const [history, setHistory] = useState<HistoryState>({ key: '', candles: null, error: null })
 
-  // 과거 봉은 종목·기간이 바뀔 때만 다시 만든다. 시세가 0.5초마다 바뀌므로 quote는 일부러 의존성에서 뺐다
-  const past = useMemo(
-    () => (period === 'LIVE' ? null : buildHistory(code, period, quote).slice(0, -1)),
-    [code, period],
-  )
-  // 마지막 봉만 실시간 시세로 갱신한다
+  // 불러오는 함수는 렌더마다 새로 만들어지므로 최신 것을 ref로 들고, 종목·기간이 바뀔 때만 요청한다
+  const loaderRef = useRef(loadHistory)
+  loaderRef.current = loadHistory
+  const key = `${code}:${period}`
+  useEffect(() => {
+    if (period === 'LIVE') return
+    let cancelled = false
+    setHistory({ key, candles: null, error: null })
+    loaderRef.current(period).then(
+      (candles) => !cancelled && setHistory({ key, candles, error: null }),
+      (e: Error) => !cancelled && setHistory({ key, candles: null, error: e.message }),
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [key, period])
+
+  // 마지막 봉에만 실시간 가격을 반영한다
+  const loaded = history.key === key ? history : { key, candles: null, error: null }
   const candles = useMemo(() => {
-    if (period === 'LIVE' || !past) return liveCandles
-    return [...past, currentBar(period, past[past.length - 1], quote, Date.now())]
-  }, [period, past, liveCandles, quote])
+    if (period === 'LIVE') return liveCandles
+    return loaded.candles ? withLivePrice(loaded.candles, quote.price) : null
+  }, [period, liveCandles, loaded.candles, quote.price])
 
-  const ret = period === 'LIVE' ? changeRate(quote) : periodReturn(candles)
+  const ret = period === 'LIVE' ? changeRate(quote) : candles ? periodReturn(candles) : 0
   const up = period === 'LIVE' ? change(quote) >= 0 : ret >= 0
   const caption = period === 'LIVE' ? `${liveLabel} · 어제보다` : `${PERIOD_SPECS[period].caption} 동안`
 
@@ -50,7 +68,11 @@ export function PriceChart({ code, quote, liveCandles, liveLabel }: Props) {
         </span>
       </div>
       <div ref={ref} className="chart-box">
-        {width === 0 ? null : candles.length > 1 ? (
+        {width === 0 ? null : loaded.error && period !== 'LIVE' ? (
+          <p className="empty">차트를 불러오지 못했어요. ({loaded.error})</p>
+        ) : candles === null ? (
+          <p className="empty">차트를 불러오는 중이에요</p>
+        ) : candles.length > 1 ? (
           <Chart candles={candles} width={width} mode={mode} up={up} unit={period === 'LIVE' ? null : period} />
         ) : (
           <p className="empty">차트 데이터가 없어요.</p>
