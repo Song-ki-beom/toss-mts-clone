@@ -25,6 +25,8 @@ export interface Candle {
   low: number
   close: number
   volume: number
+  /** 봉의 기준 시각(ms). 실시간 5초봉에는 없다 */
+  time?: number
 }
 
 export interface OrderBookLevel {

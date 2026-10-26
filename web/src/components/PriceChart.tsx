@@ -1,25 +1,57 @@
-import { useState } from 'react'
-import type { Candle } from '../domain/models'
-import { formatPrice } from '../domain/format'
+import { useMemo, useState } from 'react'
+import { change, changeRate, type Candle, type Quote } from '../domain/models'
+import { buildHistory, currentBar, PERIOD_LABEL, PERIOD_SPECS, PERIODS, periodReturn, type HistoryPeriod, type Period } from '../domain/history'
+import { formatAxisDate, formatPrice, formatRate, tone } from '../domain/format'
 import { Card, Segmented, useWidth } from './common'
 
 type Mode = 'LINE' | 'CANDLE'
 const MODES = ['LINE', 'CANDLE'] as const
 const MODE_LABEL: Record<Mode, string> = { LINE: '라인', CANDLE: '캔들' }
-const HEIGHT = 300
+const PLOT_H = 280
+const AXIS_H = 26
 const PAD_Y = 16
 const AXIS_W = 64
 
-export function PriceChart({ candles, label, up }: { candles: Candle[]; label: string; up: boolean }) {
+interface Props {
+  code: string
+  quote: Quote
+  /** 실시간 탭에 쓰는 5초봉 */
+  liveCandles: Candle[]
+  liveLabel: string
+}
+
+export function PriceChart({ code, quote, liveCandles, liveLabel }: Props) {
   const [mode, setMode] = useState<Mode>('LINE')
+  const [period, setPeriod] = useState<Period>('LIVE')
   const [ref, width] = useWidth<HTMLDivElement>()
+
+  // 과거 봉은 종목·기간이 바뀔 때만 다시 만든다. 시세가 0.5초마다 바뀌므로 quote는 일부러 의존성에서 뺐다
+  const past = useMemo(
+    () => (period === 'LIVE' ? null : buildHistory(code, period, quote).slice(0, -1)),
+    [code, period],
+  )
+  // 마지막 봉만 실시간 시세로 갱신한다
+  const candles = useMemo(() => {
+    if (period === 'LIVE' || !past) return liveCandles
+    return [...past, currentBar(period, past[past.length - 1], quote, Date.now())]
+  }, [period, past, liveCandles, quote])
+
+  const ret = period === 'LIVE' ? changeRate(quote) : periodReturn(candles)
+  const up = period === 'LIVE' ? change(quote) >= 0 : ret >= 0
+  const caption = period === 'LIVE' ? `${liveLabel} · 어제보다` : `${PERIOD_SPECS[period].caption} 동안`
 
   return (
     <Card title="차트" action={<Segmented options={MODES} value={mode} onChange={setMode} labels={MODE_LABEL} />} className="chart-card">
-      <div className="muted small chart-label">{label}</div>
+      <div className="chart-toolbar">
+        <Segmented options={PERIODS} value={period} onChange={setPeriod} labels={PERIOD_LABEL} />
+        <span className="chart-return">
+          <span className="muted">{caption} </span>
+          <strong className={tone(ret)}>{formatRate(ret)}</strong>
+        </span>
+      </div>
       <div ref={ref} className="chart-box">
-        {width > 0 && candles.length > 1 ? (
-          mode === 'LINE' ? <LineChart candles={candles} width={width} up={up} /> : <CandleChart candles={candles} width={width} />
+        {width === 0 ? null : candles.length > 1 ? (
+          <Chart candles={candles} width={width} mode={mode} up={up} unit={period === 'LIVE' ? null : period} />
         ) : (
           <p className="empty">차트 데이터가 없어요.</p>
         )}
@@ -28,72 +60,90 @@ export function PriceChart({ candles, label, up }: { candles: Candle[]; label: s
   )
 }
 
-function scale(candles: Candle[], width: number, useHighLow: boolean) {
+function Chart({ candles, width, mode, up, unit }: { candles: Candle[]; width: number; mode: Mode; up: boolean; unit: HistoryPeriod | null }) {
+  const useHighLow = mode === 'CANDLE'
   const max = Math.max(...candles.map((c) => (useHighLow ? c.high : c.close)))
   const min = Math.min(...candles.map((c) => (useHighLow ? c.low : c.close)))
   const range = Math.max(max - min, 1)
   const plotW = width - AXIS_W
-  const y = (p: number) => PAD_Y + (1 - (p - min) / range) * (HEIGHT - PAD_Y * 2)
-  return { max, min, plotW, y }
-}
+  const y = (p: number) => PAD_Y + (1 - (p - min) / range) * (PLOT_H - PAD_Y * 2)
+  const slot = plotW / candles.length
+  const cx = (i: number) => slot * i + slot / 2
+  const height = PLOT_H + (unit ? AXIS_H : 0)
 
-function Axis({ max, min, plotW, y }: ReturnType<typeof scale>) {
-  const ticks = [max, (max + min) / 2, min]
   return (
-    <g className="axis">
-      {ticks.map((t, i) => (
-        <g key={i}>
-          <line x1={0} x2={plotW} y1={y(t)} y2={y(t)} className="grid" />
-          <text x={plotW + 8} y={y(t) + 4}>{formatPrice(Math.round(t))}</text>
-        </g>
-      ))}
-    </g>
+    <svg width={width} height={height} role="img" aria-label={mode === 'LINE' ? '가격 라인 차트' : '캔들 차트'}>
+      <g className="axis">
+        {[max, (max + min) / 2, min].map((t, i) => (
+          <g key={i}>
+            <line x1={0} x2={plotW} y1={y(t)} y2={y(t)} className="grid" />
+            <text x={plotW + 8} y={y(t) + 4}>{formatPrice(Math.round(t))}</text>
+          </g>
+        ))}
+        {unit && <DateAxis candles={candles} cx={cx} unit={unit} />}
+      </g>
+      {mode === 'LINE' ? <Line candles={candles} cx={cx} y={y} up={up} /> : <Candles candles={candles} cx={cx} y={y} slot={slot} />}
+    </svg>
   )
 }
 
-function LineChart({ candles, width, up }: { candles: Candle[]; width: number; up: boolean }) {
-  const s = scale(candles, width, false)
-  const step = s.plotW / (candles.length - 1)
-  const pts = candles.map((c, i) => [i * step, s.y(c.close)] as const)
-  const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const area = `${line} L${s.plotW},${HEIGHT} L0,${HEIGHT} Z`
+/** 차트 아래 날짜 4개 */
+function DateAxis({ candles, cx, unit }: { candles: Candle[]; cx: (i: number) => number; unit: HistoryPeriod }) {
+  const n = candles.length
+  const idx = [...new Set([0, Math.round((n - 1) / 3), Math.round(((n - 1) * 2) / 3), n - 1])]
+  return (
+    <>
+      {idx.map((i, k) => (
+        <text
+          key={i}
+          x={cx(i)}
+          y={PLOT_H + 18}
+          textAnchor={k === 0 ? 'start' : k === idx.length - 1 ? 'end' : 'middle'}
+        >
+          {candles[i].time ? formatAxisDate(candles[i].time!, unit) : ''}
+        </text>
+      ))}
+    </>
+  )
+}
+
+function Line({ candles, cx, y, up }: { candles: Candle[]; cx: (i: number) => number; y: (p: number) => number; up: boolean }) {
+  const pts = candles.map((c, i) => [cx(i), y(c.close)] as const)
+  const line = pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ')
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${PLOT_H} L${pts[0][0].toFixed(1)},${PLOT_H} Z`
   const color = up ? 'var(--up)' : 'var(--down)'
   const [lx, ly] = pts[pts.length - 1]
+  const gradientId = up ? 'area-up' : 'area-down'
   return (
-    <svg width={width} height={HEIGHT} role="img" aria-label="가격 라인 차트">
+    <>
       <defs>
-        <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.18} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <Axis {...s} />
-      <path d={area} fill="url(#area)" />
+      <path d={area} fill={`url(#${gradientId})`} />
       <path d={line} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={lx} cy={ly} r={4.5} fill={color} />
-    </svg>
+    </>
   )
 }
 
-function CandleChart({ candles, width }: { candles: Candle[]; width: number }) {
-  const s = scale(candles, width, true)
-  const slot = s.plotW / candles.length
+function Candles({ candles, cx, y, slot }: { candles: Candle[]; cx: (i: number) => number; y: (p: number) => number; slot: number }) {
   const body = Math.max(slot * 0.6, 1)
   return (
-    <svg width={width} height={HEIGHT} role="img" aria-label="캔들 차트">
-      <Axis {...s} />
+    <>
       {candles.map((c, i) => {
         const color = c.close >= c.open ? 'var(--up)' : 'var(--down)'
-        const cx = slot * i + slot / 2
-        const top = s.y(Math.max(c.open, c.close))
-        const bottom = s.y(Math.min(c.open, c.close))
+        const top = y(Math.max(c.open, c.close))
+        const bottom = y(Math.min(c.open, c.close))
         return (
           <g key={i}>
-            <line x1={cx} x2={cx} y1={s.y(c.high)} y2={s.y(c.low)} stroke={color} strokeWidth={1} />
-            <rect x={cx - body / 2} y={top} width={body} height={Math.max(bottom - top, 1)} fill={color} rx={1} />
+            <line x1={cx(i)} x2={cx(i)} y1={y(c.high)} y2={y(c.low)} stroke={color} strokeWidth={1} />
+            <rect x={cx(i) - body / 2} y={top} width={body} height={Math.max(bottom - top, 1)} fill={color} rx={1} />
           </g>
         )
       })}
-    </svg>
+    </>
   )
 }

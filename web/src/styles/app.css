@@ -151,6 +151,7 @@
   color: var(--text-3);
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .segmented button.active {
@@ -309,13 +310,28 @@
 }
 
 /* ── 차트 */
-.chart-label {
-  margin: -6px 0 8px;
+.chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.chart-toolbar .segmented button {
+  min-width: 0;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.chart-return {
+  font-size: 14px;
 }
 
 .chart-box {
   width: 100%;
-  min-height: 300px;
+  min-height: 306px;
 }
 
 .chart-box svg {
